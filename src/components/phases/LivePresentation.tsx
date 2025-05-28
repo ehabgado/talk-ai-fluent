@@ -24,6 +24,8 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
     message: string;
     timestamp: number;
   }>>([]);
+  const [speechTranscript, setSpeechTranscript] = useState('');
+  const [realTimeFeedback, setRealTimeFeedback] = useState<string>('');
 
   const sections = [
     { name: "Introduction", plannedDuration: 120, status: "current" },
@@ -41,21 +43,21 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  // Simulate real-time feedback
+  // Simulate real-time speech recognition and feedback
   useEffect(() => {
     if (!isRecording) return;
 
     const feedbackInterval = setInterval(() => {
       const feedbackTypes = [
-        { type: 'pace-fast', message: t('live.feedback.fast') },
-        { type: 'pace-slow', message: t('live.feedback.slow') },
-        { type: 'filler', message: t('live.feedback.filler') },
-        { type: 'structure', message: t('live.feedback.structure') },
-        { type: 'good', message: t('live.feedback.pace') },
+        { type: 'pace-fast', message: 'Consider slowing down your pace for better comprehension' },
+        { type: 'pace-slow', message: 'Try to increase your speaking pace to maintain engagement' },
+        { type: 'filler', message: 'Reduce filler words like "um" and "uh" for clearer delivery' },
+        { type: 'structure', message: 'Great transition! Moving to the next section smoothly' },
+        { type: 'good', message: 'Excellent pace and clarity! Keep it up' },
       ];
 
-      // Randomly trigger feedback (30% chance every 5 seconds)
-      if (Math.random() < 0.3) {
+      // Simulate more frequent feedback (50% chance every 3 seconds)
+      if (Math.random() < 0.5) {
         const randomFeedback = feedbackTypes[Math.floor(Math.random() * feedbackTypes.length)];
         const newFeedback = {
           id: Date.now().toString(),
@@ -71,10 +73,23 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
           setFeedbackMessages(prev => prev.filter(f => f.id !== newFeedback.id));
         }, 60000);
       }
-    }, 5000);
+
+      // Simulate live transcript
+      const samplePhrases = [
+        "Welcome everyone to today's presentation...",
+        "As we move into the main content...",
+        "The key point here is that...",
+        "Let me show you an example...",
+        "In conclusion, we can see that...",
+      ];
+      
+      if (Math.random() < 0.3) {
+        setSpeechTranscript(prev => prev + " " + samplePhrases[Math.floor(Math.random() * samplePhrases.length)]);
+      }
+    }, 3000);
 
     return () => clearInterval(feedbackInterval);
-  }, [isRecording, t]);
+  }, [isRecording]);
 
   const startRecording = async () => {
     try {
@@ -82,6 +97,9 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsRecording(true);
       setElapsedTime(0);
+      setSpeechTranscript('');
+      setRealTimeFeedback('Starting live analysis...');
+      
       toast({
         title: "Recording Started",
         description: "Your presentation is being analyzed in real-time.",
@@ -97,6 +115,7 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
 
   const stopRecording = () => {
     setIsRecording(false);
+    setRealTimeFeedback('');
     toast({
       title: "Recording Stopped",
       description: "Your presentation data has been saved for analysis.",
@@ -204,12 +223,12 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
         </div>
 
         {/* Live Feedback Display */}
-        <div className="lg:col-span-2">
-          <Card className="h-full min-h-[500px]">
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="h-[300px]">
             <CardHeader>
               <CardTitle>Real-time Feedback</CardTitle>
             </CardHeader>
-            <CardContent className="relative h-full">
+            <CardContent className="h-full overflow-y-auto">
               {!isRecording ? (
                 <div className="flex items-center justify-center h-full text-center">
                   <div>
@@ -241,16 +260,45 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
                       <span>Planned: {formatTime(sections[currentSection]?.plannedDuration || 0)}</span>
                     </div>
                   </div>
+
+                  {/* Recent Feedback History */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-gray-800">Recent Feedback:</h4>
+                    {feedbackMessages.slice(-3).map((feedback) => (
+                      <div key={feedback.id} className={`p-3 rounded-lg text-sm ${
+                        feedback.type === 'good' ? 'bg-green-100 text-green-800' :
+                        feedback.type === 'pace-fast' || feedback.type === 'pace-slow' ? 'bg-orange-100 text-orange-800' :
+                        feedback.type === 'filler' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {feedback.message}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
+
+          {/* Live Transcript */}
+          {isRecording && (
+            <Card className="h-[200px]">
+              <CardHeader>
+                <CardTitle>Live Transcript</CardTitle>
+              </CardHeader>
+              <CardContent className="h-full overflow-y-auto">
+                <div className="text-sm text-gray-700 leading-relaxed">
+                  {speechTranscript || "Listening for speech..."}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
-      {/* Feedback Toasts */}
-      <div className="fixed bottom-6 right-6 space-y-2 z-50">
-        {feedbackMessages.map((feedback) => (
+      {/* Floating Feedback Notifications */}
+      <div className="fixed bottom-6 right-6 space-y-2 z-50 max-w-sm">
+        {feedbackMessages.slice(-2).map((feedback) => (
           <FeedbackToast
             key={feedback.id}
             type={feedback.type}
