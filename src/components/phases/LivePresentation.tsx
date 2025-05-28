@@ -3,9 +3,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Play, Square, Mic, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Mic, MicOff, Play, Pause, Square, MessageSquare, Clock, TrendingUp, CheckCircle, AlertCircle, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import FeedbackToast from '@/components/FeedbackToast';
 
 interface LivePresentationProps {
   onNext: () => void;
@@ -16,110 +15,101 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [duration, setDuration] = useState(0);
   const [currentSection, setCurrentSection] = useState(0);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [feedbackMessages, setFeedbackMessages] = useState<Array<{
-    id: string;
-    type: 'pace-fast' | 'pace-slow' | 'filler' | 'structure' | 'good';
-    message: string;
-    timestamp: number;
-  }>>([]);
-  const [speechTranscript, setSpeechTranscript] = useState('');
-  const [realTimeFeedback, setRealTimeFeedback] = useState<string>('');
+  const [liveNotes, setLiveNotes] = useState<string[]>([]);
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    pace: 'Good',
+    volume: 'Optimal',
+    clarity: 'Excellent',
+    engagement: 'High'
+  });
 
   const sections = [
-    { name: "Introduction", plannedDuration: 120, status: "current" },
-    { name: "Main Content", plannedDuration: 900, status: "upcoming" },
-    { name: "Conclusion", plannedDuration: 180, status: "upcoming" },
+    { name: "Introduction", duration: 120, color: "blue" },
+    { name: "Main Content", duration: 900, color: "purple" },
+    { name: "Conclusion", duration: 180, color: "green" }
   ];
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isRecording) {
+    if (isRecording && !isPaused) {
       interval = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
+        setDuration(prev => {
+          const newDuration = prev + 1;
+          // Auto-advance sections based on timing
+          if (newDuration === 120) setCurrentSection(1);
+          if (newDuration === 1020) setCurrentSection(2);
+          return newDuration;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isRecording]);
+  }, [isRecording, isPaused]);
 
-  // Simulate real-time speech recognition and feedback
+  // Simulate live AI feedback
   useEffect(() => {
-    if (!isRecording) return;
-
-    const feedbackInterval = setInterval(() => {
-      const feedbackTypes = [
-        { type: 'pace-fast', message: 'Consider slowing down your pace for better comprehension' },
-        { type: 'pace-slow', message: 'Try to increase your speaking pace to maintain engagement' },
-        { type: 'filler', message: 'Reduce filler words like "um" and "uh" for clearer delivery' },
-        { type: 'structure', message: 'Great transition! Moving to the next section smoothly' },
-        { type: 'good', message: 'Excellent pace and clarity! Keep it up' },
-      ];
-
-      // Simulate more frequent feedback (50% chance every 3 seconds)
-      if (Math.random() < 0.5) {
-        const randomFeedback = feedbackTypes[Math.floor(Math.random() * feedbackTypes.length)];
-        const newFeedback = {
-          id: Date.now().toString(),
-          type: randomFeedback.type as any,
-          message: randomFeedback.message,
-          timestamp: Date.now(),
-        };
+    if (isRecording && !isPaused) {
+      const feedbackInterval = setInterval(() => {
+        const feedbackMessages = [
+          "Great eye contact! Keep engaging with your audience.",
+          "Consider slowing down slightly for better comprehension.",
+          "Excellent use of gestures to emphasize your points.",
+          "Perfect transition between sections!",
+          "Your voice projection is ideal for the room size.",
+          "Try to pause briefly after key points for emphasis.",
+          "Strong opening! Your audience is engaged.",
+          "Remember to breathe and maintain your natural rhythm."
+        ];
         
-        setFeedbackMessages(prev => [...prev, newFeedback]);
+        const randomFeedback = feedbackMessages[Math.floor(Math.random() * feedbackMessages.length)];
+        setLiveNotes(prev => [...prev.slice(-4), randomFeedback]); // Keep last 5 notes
         
-        // Remove feedback after 60 seconds
-        setTimeout(() => {
-          setFeedbackMessages(prev => prev.filter(f => f.id !== newFeedback.id));
-        }, 60000);
-      }
+        // Show toast notification for important feedback
+        if (Math.random() > 0.7) {
+          toast({
+            title: "AI Coach",
+            description: randomFeedback,
+            duration: 3000,
+          });
+        }
+      }, 8000 + Math.random() * 7000); // Random interval between 8-15 seconds
 
-      // Simulate live transcript
-      const samplePhrases = [
-        "Welcome everyone to today's presentation...",
-        "As we move into the main content...",
-        "The key point here is that...",
-        "Let me show you an example...",
-        "In conclusion, we can see that...",
-      ];
-      
-      if (Math.random() < 0.3) {
-        setSpeechTranscript(prev => prev + " " + samplePhrases[Math.floor(Math.random() * samplePhrases.length)]);
-      }
-    }, 3000);
-
-    return () => clearInterval(feedbackInterval);
-  }, [isRecording]);
-
-  const startRecording = async () => {
-    try {
-      // In production, this would initialize Deepgram SDK
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      setIsRecording(true);
-      setElapsedTime(0);
-      setSpeechTranscript('');
-      setRealTimeFeedback('Starting live analysis...');
-      
-      toast({
-        title: "Recording Started",
-        description: "Your presentation is being analyzed in real-time.",
-      });
-    } catch (error) {
-      toast({
-        title: "Microphone Access Denied",
-        description: "Please allow microphone access to use live mode.",
-        variant: "destructive",
-      });
+      return () => clearInterval(feedbackInterval);
     }
+  }, [isRecording, isPaused, toast]);
+
+  const startRecording = () => {
+    setIsRecording(true);
+    setIsPaused(false);
+    setDuration(0);
+    setCurrentSection(0);
+    setLiveNotes(["Presentation started. AI coaching is now active."]);
+    toast({
+      title: "Recording Started",
+      description: "AI coaching is now active. Good luck with your presentation!",
+    });
+  };
+
+  const pauseRecording = () => {
+    setIsPaused(!isPaused);
+    toast({
+      title: isPaused ? "Recording Resumed" : "Recording Paused",
+      description: isPaused ? "AI feedback resumed" : "AI feedback paused",
+    });
   };
 
   const stopRecording = () => {
     setIsRecording(false);
-    setRealTimeFeedback('');
+    setIsPaused(false);
     toast({
       title: "Recording Stopped",
-      description: "Your presentation data has been saved for analysis.",
+      description: "Analyzing your presentation performance...",
     });
+    setTimeout(() => {
+      onNext();
+    }, 2000);
   };
 
   const formatTime = (seconds: number) => {
@@ -128,198 +118,222 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getSectionProgress = () => {
+    const section = sections[currentSection];
+    if (!section) return 0;
+    
+    const sectionStart = sections.slice(0, currentSection).reduce((total, s) => total + s.duration, 0);
+    const sectionElapsed = duration - sectionStart;
+    return Math.min((sectionElapsed / section.duration) * 100, 100);
+  };
+
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          {t('live.title')}
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300">
-          Real-time AI feedback to improve your delivery
-        </p>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Control Panel */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mic className="w-5 h-5" />
-                Recording Control
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!isRecording ? (
-                <Button 
-                  onClick={startRecording}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  size="lg"
-                >
-                  <Play className="w-5 h-5 mr-2" />
-                  {t('live.start')}
-                </Button>
-              ) : (
-                <Button 
-                  onClick={stopRecording}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white"
-                  size="lg"
-                >
-                  <Square className="w-5 h-5 mr-2" />
-                  {t('live.stop')}
-                </Button>
-              )}
-
-              {isRecording && (
-                <div className="flex items-center justify-center gap-2 text-red-600">
-                  <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
-                  <span className="font-mono text-lg">{formatTime(elapsedTime)}</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Section Progress */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                Presentation Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {sections.map((section, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className={`font-medium ${
-                      index === currentSection ? 'text-blue-600' : 'text-gray-600'
-                    }`}>
-                      {section.name}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {formatTime(section.plannedDuration)}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        index === currentSection 
-                          ? 'bg-blue-600' 
-                          : index < currentSection 
-                            ? 'bg-green-600' 
-                            : 'bg-gray-200'
-                      }`}
-                      style={{ 
-                        width: index === currentSection 
-                          ? `${Math.min((elapsedTime / section.plannedDuration) * 100, 100)}%`
-                          : index < currentSection ? '100%' : '0%'
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            Live AI Coaching
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300">
+            Real-time feedback and performance tracking
+          </p>
         </div>
 
-        {/* Live Feedback Display */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="h-[300px]">
-            <CardHeader>
-              <CardTitle>Real-time Feedback</CardTitle>
-            </CardHeader>
-            <CardContent className="h-full overflow-y-auto">
-              {!isRecording ? (
-                <div className="flex items-center justify-center h-full text-center">
-                  <div>
-                    <Mic className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg">
-                      Start recording to see real-time feedback
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                    <div className="flex items-center justify-center gap-2 text-green-800">
-                      <CheckCircle className="w-5 h-5" />
-                      <span className="font-semibold">Live Analysis Active</span>
-                    </div>
-                    <p className="text-green-600 text-sm mt-1">
-                      AI is monitoring your pace, structure, and delivery
-                    </p>
-                  </div>
-
-                  {/* Current Section Indicator */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-blue-800 mb-2">
-                      Current Section: {sections[currentSection]?.name}
-                    </h3>
-                    <div className="flex items-center gap-4 text-sm text-blue-600">
-                      <span>Elapsed: {formatTime(elapsedTime)}</span>
-                      <span>Planned: {formatTime(sections[currentSection]?.plannedDuration || 0)}</span>
-                    </div>
-                  </div>
-
-                  {/* Recent Feedback History */}
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-800">Recent Feedback:</h4>
-                    {feedbackMessages.slice(-3).map((feedback) => (
-                      <div key={feedback.id} className={`p-3 rounded-lg text-sm ${
-                        feedback.type === 'good' ? 'bg-green-100 text-green-800' :
-                        feedback.type === 'pace-fast' || feedback.type === 'pace-slow' ? 'bg-orange-100 text-orange-800' :
-                        feedback.type === 'filler' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {feedback.message}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Live Transcript */}
-          {isRecording && (
-            <Card className="h-[200px]">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Controls & Timer */}
+          <div className="space-y-6">
+            {/* Recording Controls */}
+            <Card className="shadow-xl border-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Live Transcript</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Mic className="w-5 h-5 text-red-500" />
+                  Recording Controls
+                </CardTitle>
               </CardHeader>
-              <CardContent className="h-full overflow-y-auto">
-                <div className="text-sm text-gray-700 leading-relaxed">
-                  {speechTranscript || "Listening for speech..."}
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                    {formatTime(duration)}
+                  </div>
+                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+                    isRecording 
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200' 
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                    {isRecording ? (isPaused ? 'Paused' : 'Recording') : 'Stopped'}
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-center">
+                  {!isRecording ? (
+                    <Button
+                      onClick={startRecording}
+                      className="bg-red-600 hover:bg-red-700 text-white px-8"
+                      size="lg"
+                    >
+                      <Play className="w-5 h-5 mr-2" />
+                      Start Recording
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={pauseRecording}
+                        variant="outline"
+                        size="lg"
+                      >
+                        {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+                      </Button>
+                      <Button
+                        onClick={stopRecording}
+                        variant="destructive"
+                        size="lg"
+                      >
+                        <Square className="w-5 h-5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          )}
+
+            {/* Section Progress */}
+            <Card className="shadow-xl border-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-blue-500" />
+                  Section Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {sections.map((section, index) => (
+                  <div key={index} className={`p-3 rounded-lg border-2 transition-all ${
+                    index === currentSection 
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                      : index < currentSection 
+                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                      : 'border-gray-200 bg-gray-50 dark:bg-gray-700'
+                  }`}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium">{section.name}</span>
+                      <span className="text-sm text-gray-500">
+                        {Math.floor(section.duration / 60)}min
+                      </span>
+                    </div>
+                    {index === currentSection && (
+                      <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full bg-${section.color}-500 transition-all duration-300`}
+                          style={{ width: `${getSectionProgress()}%` }}
+                        ></div>
+                      </div>
+                    )}
+                    {index < currentSection && (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="text-sm">Completed</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Performance Metrics */}
+            <Card className="shadow-xl border-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  Live Metrics
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {Object.entries(performanceMetrics).map(([key, value]) => (
+                  <div key={key} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <span className="font-medium capitalize">{key}</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      value === 'Excellent' || value === 'High' || value === 'Optimal' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200'
+                        : value === 'Good' 
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200'
+                    }`}>
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Center Column - Live Notes */}
+          <div className="lg:col-span-2">
+            <Card className="h-full shadow-xl border-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-purple-500" />
+                  Live AI Coaching Notes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="h-[600px] overflow-hidden">
+                <div className="h-full overflow-y-auto space-y-4 pr-2">
+                  {liveNotes.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                      <Zap className="w-16 h-16 text-gray-400 mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                        AI Coach Ready
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-400">
+                        Start recording to receive real-time coaching feedback and performance insights.
+                      </p>
+                    </div>
+                  ) : (
+                    liveNotes.map((note, index) => (
+                      <div 
+                        key={index} 
+                        className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/10 dark:to-purple-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4 animate-fade-in shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Zap className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                AI Coach
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {formatTime(duration)}
+                              </span>
+                            </div>
+                            <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
+                              {note}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
 
-      {/* Floating Feedback Notifications */}
-      <div className="fixed bottom-6 right-6 space-y-2 z-50 max-w-sm">
-        {feedbackMessages.slice(-2).map((feedback) => (
-          <FeedbackToast
-            key={feedback.id}
-            type={feedback.type}
-            message={feedback.message}
-            onDismiss={() => setFeedbackMessages(prev => prev.filter(f => f.id !== feedback.id))}
-          />
-        ))}
-      </div>
-
-      {/* Navigation */}
-      <div className="flex justify-between pt-6">
-        <Button variant="outline" onClick={onBack}>
-          {t('button.back')}
-        </Button>
-        <Button 
-          onClick={onNext}
-          disabled={isRecording}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-        >
-          {t('button.next')}
-        </Button>
+        {/* Navigation */}
+        <div className="flex justify-between pt-6">
+          <Button variant="outline" onClick={onBack} className="px-8">
+            {t('button.back')}
+          </Button>
+          <Button 
+            onClick={onNext} 
+            disabled={isRecording}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8"
+          >
+            View Analysis →
+          </Button>
+        </div>
       </div>
     </div>
   );
