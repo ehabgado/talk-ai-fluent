@@ -236,17 +236,6 @@ const LandingPage = ({ onStart }: LandingPageProps) => {
           </Button>
         </div>
       </div>
-
-      {/* Background CSS Animation */}
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(180deg); }
-        }
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 };
