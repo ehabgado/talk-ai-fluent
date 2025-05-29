@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +10,15 @@ interface LivePresentationProps {
   onBack: () => void;
 }
 
+type CoachingNoteType = 'success' | 'suggestion' | 'warning' | 'info';
+
+interface CoachingNote {
+  id: string;
+  content: string;
+  type: CoachingNoteType;
+  timestamp: number;
+}
+
 const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -18,12 +26,7 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentSection, setCurrentSection] = useState(0);
-  const [liveCoachingNotes, setLiveCoachingNotes] = useState<Array<{
-    id: string;
-    content: string;
-    type: 'success' | 'suggestion' | 'warning' | 'info';
-    timestamp: number;
-  }>>([]);
+  const [liveCoachingNotes, setLiveCoachingNotes] = useState<CoachingNote[]>([]);
   const [performanceMetrics, setPerformanceMetrics] = useState({
     pace: 'Good',
     volume: 'Optimal',
@@ -68,69 +71,69 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
     const sectionProgress = getSectionProgress();
     const timeInSection = duration - sections.slice(0, currentSection).reduce((total, s) => total + s.duration, 0);
     
-    let coachingMessages: Array<{content: string, type: 'success' | 'suggestion' | 'warning' | 'info'}> = [];
+    let coachingMessages: Array<{content: string, type: CoachingNoteType}> = [];
 
     // Section-specific coaching
     if (currentSection === 0) { // Introduction
       if (timeInSection < 60) {
         coachingMessages = [
-          { content: "Strong opening! Your energy is engaging the audience effectively.", type: 'success' },
-          { content: "Good pace for your introduction. Remember to make eye contact across the room.", type: 'suggestion' },
-          { content: "Perfect timing so far. Your audience looks engaged and ready for the main content.", type: 'info' }
+          { content: "Strong opening! Your energy is engaging the audience effectively.", type: 'success' as CoachingNoteType },
+          { content: "Good pace for your introduction. Remember to make eye contact across the room.", type: 'suggestion' as CoachingNoteType },
+          { content: "Perfect timing so far. Your audience looks engaged and ready for the main content.", type: 'info' as CoachingNoteType }
         ];
       } else {
         coachingMessages = [
-          { content: "You're building good rapport with your audience. Consider transitioning to main points soon.", type: 'suggestion' },
-          { content: "Excellent audience connection! Time to bridge to your core content.", type: 'info' }
+          { content: "You're building good rapport with your audience. Consider transitioning to main points soon.", type: 'suggestion' as CoachingNoteType },
+          { content: "Excellent audience connection! Time to bridge to your core content.", type: 'info' as CoachingNoteType }
         ];
       }
     } else if (currentSection === 1) { // Main Content
       if (sectionProgress < 25) {
         coachingMessages = [
-          { content: "Great transition into main content! Your structure is clear and logical.", type: 'success' },
-          { content: "Consider using a brief pause after key points to let ideas sink in.", type: 'suggestion' },
-          { content: "Your explanation is clear. The audience is following your logic well.", type: 'info' }
+          { content: "Great transition into main content! Your structure is clear and logical.", type: 'success' as CoachingNoteType },
+          { content: "Consider using a brief pause after key points to let ideas sink in.", type: 'suggestion' as CoachingNoteType },
+          { content: "Your explanation is clear. The audience is following your logic well.", type: 'info' as CoachingNoteType }
         ];
       } else if (sectionProgress < 50) {
         coachingMessages = [
-          { content: "Excellent depth of explanation. Your examples are resonating with the audience.", type: 'success' },
-          { content: "You're halfway through your main content. Consider checking audience understanding.", type: 'info' },
-          { content: "Your gestures are effectively emphasizing key points. Keep using them strategically.", type: 'suggestion' }
+          { content: "Excellent depth of explanation. Your examples are resonating with the audience.", type: 'success' as CoachingNoteType },
+          { content: "You're halfway through your main content. Consider checking audience understanding.", type: 'info' as CoachingNoteType },
+          { content: "Your gestures are effectively emphasizing key points. Keep using them strategically.", type: 'suggestion' as CoachingNoteType }
         ];
       } else if (sectionProgress < 75) {
         coachingMessages = [
-          { content: "Strong momentum maintained! Your audience remains engaged with the content.", type: 'success' },
-          { content: "Consider varying your vocal pace slightly to maintain interest in complex sections.", type: 'suggestion' },
-          { content: "You're in the final quarter of main content. Begin preparing for conclusion themes.", type: 'info' }
+          { content: "Strong momentum maintained! Your audience remains engaged with the content.", type: 'success' as CoachingNoteType },
+          { content: "Consider varying your vocal pace slightly to maintain interest in complex sections.", type: 'suggestion' as CoachingNoteType },
+          { content: "You're in the final quarter of main content. Begin preparing for conclusion themes.", type: 'info' as CoachingNoteType }
         ];
       } else {
         coachingMessages = [
-          { content: "Excellent coverage of main points! Time to start wrapping up this section.", type: 'info' },
-          { content: "Your content delivery has been comprehensive. Prepare your transition to conclusion.", type: 'suggestion' }
+          { content: "Excellent coverage of main points! Time to start wrapping up this section.", type: 'info' as CoachingNoteType },
+          { content: "Your content delivery has been comprehensive. Prepare your transition to conclusion.", type: 'suggestion' as CoachingNoteType }
         ];
       }
     } else { // Conclusion
       coachingMessages = [
-        { content: "Great transition to conclusion! Your summary is capturing key points effectively.", type: 'success' },
-        { content: "Perfect recap of main themes. Your audience has clear takeaways.", type: 'info' },
-        { content: "Strong closing approach! End with confidence and open for questions.", type: 'suggestion' }
+        { content: "Great transition to conclusion! Your summary is capturing key points effectively.", type: 'success' as CoachingNoteType },
+        { content: "Perfect recap of main themes. Your audience has clear takeaways.", type: 'info' as CoachingNoteType },
+        { content: "Strong closing approach! End with confidence and open for questions.", type: 'suggestion' as CoachingNoteType }
       ];
     }
 
     // Performance-based coaching
-    const performanceCoaching = [
-      { content: "Your speaking pace is ideal for audience comprehension.", type: 'success' },
-      { content: "Excellent use of strategic pauses. They're emphasizing your key messages.", type: 'success' },
-      { content: "Consider standing slightly closer to your audience to increase connection.", type: 'suggestion' },
-      { content: "Your voice projection is perfect for the room size.", type: 'info' },
-      { content: "Great use of hand gestures to support your verbal message.", type: 'success' }
+    const performanceCoaching: Array<{content: string, type: CoachingNoteType}> = [
+      { content: "Your speaking pace is ideal for audience comprehension.", type: 'success' as CoachingNoteType },
+      { content: "Excellent use of strategic pauses. They're emphasizing your key messages.", type: 'success' as CoachingNoteType },
+      { content: "Consider standing slightly closer to your audience to increase connection.", type: 'suggestion' as CoachingNoteType },
+      { content: "Your voice projection is perfect for the room size.", type: 'info' as CoachingNoteType },
+      { content: "Great use of hand gestures to support your verbal message.", type: 'success' as CoachingNoteType }
     ];
 
     // Combine and select random coaching message
     const allMessages = [...coachingMessages, ...performanceCoaching];
     const selectedMessage = allMessages[Math.floor(Math.random() * allMessages.length)];
     
-    const newNote = {
+    const newNote: CoachingNote = {
       id: crypto.randomUUID(),
       content: selectedMessage.content,
       type: selectedMessage.type,
@@ -170,12 +173,13 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
     setIsPaused(false);
     setDuration(0);
     setCurrentSection(0);
-    setLiveCoachingNotes([{
+    const initialNote: CoachingNote = {
       id: '1',
       content: "Presentation started! AI coaching is now active and monitoring your performance.",
-      type: 'info',
+      type: 'info' as CoachingNoteType,
       timestamp: 0
-    }]);
+    };
+    setLiveCoachingNotes([initialNote]);
     toast({
       title: "AI Coaching Active",
       description: "Real-time feedback and performance tracking started. Good luck!",
@@ -188,12 +192,14 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
       ? "Recording resumed. AI feedback is back online." 
       : "Recording paused. Take your time - AI will resume when you continue.";
     
-    setLiveCoachingNotes(prev => [...prev, {
+    const pauseNote: CoachingNote = {
       id: crypto.randomUUID(),
       content: noteContent,
-      type: 'info',
+      type: 'info' as CoachingNoteType,
       timestamp: duration
-    }]);
+    };
+    
+    setLiveCoachingNotes(prev => [...prev, pauseNote]);
     
     toast({
       title: isPaused ? "Recording Resumed" : "Recording Paused",
@@ -205,10 +211,10 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
     setIsRecording(false);
     setIsPaused(false);
     
-    const finalNote = {
+    const finalNote: CoachingNote = {
       id: crypto.randomUUID(),
       content: "Presentation completed! Analyzing your performance data and generating detailed insights...",
-      type: 'success',
+      type: 'success' as CoachingNoteType,
       timestamp: duration
     };
     
@@ -239,7 +245,7 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
     return Math.min((sectionElapsed / section.duration) * 100, 100);
   };
 
-  const getNoteIcon = (type: string) => {
+  const getNoteIcon = (type: CoachingNoteType) => {
     switch (type) {
       case 'success': return <CheckCircle className="w-4 h-4 text-green-600" />;
       case 'warning': return <AlertCircle className="w-4 h-4 text-yellow-600" />;
@@ -248,7 +254,7 @@ const LivePresentation = ({ onNext, onBack }: LivePresentationProps) => {
     }
   };
 
-  const getNoteColor = (type: string) => {
+  const getNoteColor = (type: CoachingNoteType) => {
     switch (type) {
       case 'success': return 'from-green-50 to-emerald-50 border-green-200';
       case 'warning': return 'from-yellow-50 to-orange-50 border-yellow-200';
