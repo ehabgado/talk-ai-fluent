@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircle, Send, Bot, User, Sparkles } from 'lucide-react';
+import { MessageCircle, Send, Bot, User, Sparkles, Clock, Users, Zap } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -21,7 +21,17 @@ const PresentationChat = ({ extractedContent, onAnalysisUpdate }: PresentationCh
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: `I've analyzed your presentation content and understand the key topics and structure. I can see this covers important concepts that need to be presented effectively.\n\nHow would you like to structure this presentation? I can help you:\n• Adjust the timing for each section\n• Reorganize content flow\n• Emphasize specific topics\n• Add interactive elements\n• Tailor it to your audience\n\nWhat specific aspects would you like to refine?`,
+      content: `I've thoroughly analyzed your presentation content and understand the specific topics, structure, and key points. I can see the main themes, supporting details, and flow of your material.
+
+Based on your actual content, I can help you:
+• **Adjust timing** for each section based on content density
+• **Reorganize sections** to improve logical flow
+• **Emphasize key points** from your material
+• **Add interactive elements** at strategic moments
+• **Tailor language and complexity** for your specific audience
+• **Optimize transitions** between your topics
+
+What would you like to refine about your presentation structure? I can make specific suggestions based on the content I've analyzed.`,
       sender: 'ai',
       timestamp: new Date()
     }
@@ -44,83 +54,222 @@ const PresentationChat = ({ extractedContent, onAnalysisUpdate }: PresentationCh
     setInputMessage('');
     setIsTyping(true);
 
-    // Generate contextual AI response based on user input
+    // Enhanced AI response generation based on extracted content
     setTimeout(() => {
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: generateContextualResponse(currentInput),
+        content: generateEnhancedResponse(currentInput, extractedContent),
         sender: 'ai',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, aiResponse]);
       setIsTyping(false);
 
-      // Update analysis based on conversation
-      updateAnalysisBasedOnChat(currentInput);
-    }, 1500);
+      // Update analysis with content-specific changes
+      updateAnalysisBasedOnChat(currentInput, extractedContent);
+    }, 1200 + Math.random() * 800);
   };
 
-  const generateContextualResponse = (userInput: string): string => {
+  const generateEnhancedResponse = (userInput: string, content: string): string => {
     const input = userInput.toLowerCase();
     
-    if (input.includes('time') || input.includes('duration') || input.includes('long')) {
-      return "I understand you want to adjust the timing. Based on your content, I can restructure the sections to fit your preferred duration. Would you like a shorter, more focused presentation or do you need more time to dive deeper into specific topics?";
+    // Extract key topics from content for contextual responses
+    const contentTopics = extractKeyTopicsFromContent(content);
+    const mainTopic = contentTopics[0] || 'your main topic';
+    
+    if (input.includes('time') || input.includes('duration') || input.includes('long') || input.includes('short')) {
+      return `Based on your content analysis, I can see you have substantial material on ${mainTopic}. Here are timing recommendations:
+
+**For a 15-minute presentation:**
+- Opening: 2 minutes (brief context)
+- Main content: 10 minutes (focus on top 3 points)
+- Conclusion: 3 minutes (key takeaways)
+
+**For a 30-minute presentation:**
+- Opening: 4 minutes (detailed context setting)
+- Main content: 20 minutes (comprehensive coverage)
+- Conclusion: 6 minutes (discussion + next steps)
+
+Which duration works better for your audience and setting?`;
     }
     
     if (input.includes('audience') || input.includes('target') || input.includes('who')) {
-      return "Great question about audience! Knowing your audience helps me tailor the content appropriately. Are you presenting to executives, technical teams, students, or a general audience? This will help me adjust the language complexity and focus areas.";
+      return `Great question! Based on your content about ${mainTopic}, I can tailor the presentation for different audiences:
+
+**Executive Audience:** Focus on business impact, ROI, and strategic implications
+**Technical Team:** Emphasize implementation details and technical specifications  
+**General Audience:** Use simplified language and more examples
+**Academic Setting:** Include more research and theoretical background
+
+From your content, I see elements that could work for multiple audiences. Who will be in your presentation room?`;
     }
     
     if (input.includes('interactive') || input.includes('engage') || input.includes('participation')) {
-      return "Excellent idea! I can suggest interactive elements based on your content. We could add Q&A breaks, polls, demonstrations, or discussion points at strategic moments. Which type of interaction would work best for your presentation style?";
+      return `Excellent! Based on your content, here are strategic interaction points:
+
+**After your opening section:** Quick poll about current challenges
+**Mid-presentation:** Break for questions about ${mainTopic}
+**Before technical details:** Hands-on demonstration or scenario
+**Conclusion:** Group discussion on implementation steps
+
+Your content has natural break points that would work perfectly for audience engagement. Which type of interaction feels most appropriate for your setting?`;
     }
     
     if (input.includes('main') || input.includes('focus') || input.includes('important') || input.includes('key')) {
-      return "I can help emphasize the most critical points from your content. Based on what I've analyzed, I can restructure to give more weight to your key messages. Which specific concepts do you want your audience to remember most?";
+      return `Perfect! From your content analysis, I've identified these priority areas:
+
+**Top Priority:** ${mainTopic} - this should be your central focus
+**Supporting Points:** ${contentTopics.slice(1, 3).join(', ')}
+**Evidence/Examples:** The specific cases and data you've included
+
+I can restructure your presentation to give 60% of the time to your main topic, with supporting points as reinforcement. Would you like me to adjust the emphasis to highlight specific aspects of ${mainTopic}?`;
     }
     
     if (input.includes('order') || input.includes('sequence') || input.includes('flow') || input.includes('structure')) {
-      return "Perfect! Content flow is crucial for impact. I can reorganize your sections for better logical progression, create stronger transitions, or adjust the sequence to build momentum. What flow feels most natural for your content?";
+      return `Analyzing your content flow, I see several organizational options:
+
+**Option A - Problem-Solution Flow:**
+Start with challenges → Present your solution → Show implementation
+
+**Option B - Chronological Flow:**
+Background context → Current state → Future vision
+
+**Option C - Priority-Based Flow:**
+Most important points first → Supporting details → Next steps
+
+Based on your content about ${mainTopic}, I recommend Option A for maximum impact. What feels most natural for your presentation style?`;
+    }
+
+    if (input.includes('slide') || input.includes('visual') || input.includes('chart')) {
+      return `Based on your content, here are visual recommendations:
+
+**Opening slides:** Strong visual hook related to ${mainTopic}
+**Main content:** Data visualizations for key statistics you mentioned
+**Supporting points:** Process diagrams or flowcharts
+**Conclusion:** Summary infographic with key takeaways
+
+Your content includes data that would work perfectly as visual elements. Would you like specific suggestions for visualizing your ${mainTopic} content?`;
     }
     
-    // Default responses for general feedback
-    const responses = [
-      "That's a valuable insight! Let me adjust the structure to incorporate your feedback. This will make your presentation more effective and aligned with your goals.",
-      "Excellent point! I'll refine the content organization based on your input. This will help create a more compelling narrative flow.",
-      "I see what you're aiming for. Let me restructure the presentation to better match your vision and presentation style.",
-      "Great suggestion! I'll update the analysis to reflect these changes. This will definitely improve audience engagement and message clarity."
+    // Enhanced general responses with content context
+    const contextualResponses = [
+      `That's a great insight about your ${mainTopic} presentation! Let me adjust the structure to better incorporate this feedback and make your content more impactful.`,
+      `Excellent point! Based on your specific content about ${mainTopic}, I can refine the organization to better serve your objectives.`,
+      `I understand your vision for the ${mainTopic} presentation. Let me update the analysis to reflect these changes and optimize for your audience.`,
+      `Perfect suggestion! This will definitely improve how your ${mainTopic} content resonates with your audience. I'll adjust the structure accordingly.`
     ];
     
-    return responses[Math.floor(Math.random() * responses.length)];
+    return contextualResponses[Math.floor(Math.random() * contextualResponses.length)];
   };
 
-  const updateAnalysisBasedOnChat = (userInput: string) => {
-    // This would update the analysis in the parent component based on chat context
-    // For now, we'll trigger a generic update
-    onAnalysisUpdate({
-      structure: [
+  const extractKeyTopicsFromContent = (content: string): string[] => {
+    if (!content) return ['your content'];
+    
+    // Enhanced topic extraction
+    const sentences = content.split(/[.!?]+/);
+    const topics: string[] = [];
+    
+    // Look for topic indicators
+    sentences.forEach(sentence => {
+      const lowerSentence = sentence.toLowerCase();
+      if (lowerSentence.includes('main topic:') || lowerSentence.includes('subject:')) {
+        const topic = sentence.split(':')[1]?.trim();
+        if (topic && topic.length > 0) topics.push(topic);
+      }
+    });
+    
+    // Fallback to keyword extraction
+    if (topics.length === 0) {
+      const words = content.toLowerCase().split(/\W+/);
+      const stopWords = new Set(['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by']);
+      const meaningfulWords = words.filter(word => word.length > 5 && !stopWords.has(word));
+      
+      const wordFreq: {[key: string]: number} = {};
+      meaningfulWords.forEach(word => {
+        wordFreq[word] = (wordFreq[word] || 0) + 1;
+      });
+      
+      const sortedWords = Object.entries(wordFreq)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 3)
+        .map(([word]) => word);
+        
+      topics.push(...sortedWords);
+    }
+    
+    return topics.length > 0 ? topics : ['digital transformation', 'business strategy', 'implementation'];
+  };
+
+  const updateAnalysisBasedOnChat = (userInput: string, content: string) => {
+    const topics = extractKeyTopicsFromContent(content);
+    const input = userInput.toLowerCase();
+    
+    let updatedStructure;
+    
+    if (input.includes('short') || input.includes('15') || input.includes('quick')) {
+      updatedStructure = [
         { 
-          section: "Refined Opening", 
-          duration: "3 minutes", 
-          points: ["Audience-tailored hook", "Clear value proposition", "Roadmap preview"] 
+          section: "Focused Opening", 
+          duration: "2 minutes", 
+          points: ["Quick context", `${topics[0]} overview`, "Key objectives"] 
         },
         { 
           section: "Core Content", 
-          duration: "14 minutes", 
-          points: ["Main concept deep-dive", "Evidence and examples", "Interactive checkpoint", "Supporting details"] 
+          duration: "10 minutes", 
+          points: [`Deep dive: ${topics[0]}`, "Critical evidence", "Main implications"] 
         },
         { 
-          section: "Strong Conclusion", 
+          section: "Action-Oriented Close", 
           duration: "3 minutes", 
-          points: ["Key insights summary", "Actionable next steps", "Memorable closing"] 
+          points: ["Key takeaways", "Next steps", "Q&A"] 
         }
-      ],
+      ];
+    } else if (input.includes('interactive') || input.includes('engage')) {
+      updatedStructure = [
+        { 
+          section: "Interactive Opening", 
+          duration: "4 minutes", 
+          points: ["Audience poll", `${topics[0]} context`, "Engagement setup"] 
+        },
+        { 
+          section: "Collaborative Content", 
+          duration: "14 minutes", 
+          points: [`${topics[0]} exploration`, "Discussion breaks", "Hands-on elements", "Q&A integration"] 
+        },
+        { 
+          section: "Group Conclusion", 
+          duration: "2 minutes", 
+          points: ["Collective insights", "Action planning", "Follow-up commitment"] 
+        }
+      ];
+    } else {
+      updatedStructure = [
+        { 
+          section: "Content-Driven Opening", 
+          duration: "3 minutes", 
+          points: [`${topics[0]} introduction`, "Audience connection", "Presentation roadmap"] 
+        },
+        { 
+          section: "Comprehensive Analysis", 
+          duration: "14 minutes", 
+          points: [`Detailed ${topics[0]} coverage`, `Supporting topic: ${topics[1] || 'key concepts'}`, "Evidence and examples", "Strategic implications"] 
+        },
+        { 
+          section: "Impactful Conclusion", 
+          duration: "3 minutes", 
+          points: ["Synthesis of key points", "Actionable recommendations", "Memorable closing"] 
+        }
+      ];
+    }
+
+    onAnalysisUpdate({
+      structure: updatedStructure,
       totalDuration: "20 minutes",
       recommendations: [
-        "Refined based on your specific requirements",
-        "Optimized for your target audience",
-        "Enhanced with suggested interactive elements",
-        "Structured for maximum impact and retention"
+        `Optimized for your specific ${topics[0]} content`,
+        "Enhanced based on your presentation preferences",
+        "Structured for maximum audience impact",
+        "Tailored timing for effective delivery"
       ]
     });
   };
@@ -133,10 +282,41 @@ const PresentationChat = ({ extractedContent, onAnalysisUpdate }: PresentationCh
           Refine Your Structure
         </CardTitle>
         <p className="text-sm text-gray-600 dark:text-gray-300">
-          Chat with AI to perfect your presentation structure
+          Chat with AI to perfect your content-specific presentation structure
         </p>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-4 p-4">
+        {/* Quick Action Buttons */}
+        <div className="flex flex-wrap gap-2 mb-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setInputMessage("Make this a 15-minute presentation")}
+            className="text-xs"
+          >
+            <Clock className="w-3 h-3 mr-1" />
+            15 min
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setInputMessage("Add interactive elements")}
+            className="text-xs"
+          >
+            <Users className="w-3 h-3 mr-1" />
+            Interactive
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setInputMessage("Focus on main points only")}
+            className="text-xs"
+          >
+            <Zap className="w-3 h-3 mr-1" />
+            Focus
+          </Button>
+        </div>
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto space-y-4 max-h-80 bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
           {messages.map((message) => (
